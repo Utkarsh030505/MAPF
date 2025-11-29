@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Multi-Robot Decentralised Navigation</title>
+  <title>Multi-Agent Path Finding</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -316,7 +316,7 @@
       line-height: 1.4;
     }
 
-    #robotList {
+    #IList {
       max-height: 170px;
       overflow-y: auto;
       margin-top: 4px;
@@ -368,7 +368,7 @@
   <header>
     <div class="title-block">
       <h1>
-        Multi-Robot Navigation
+        Multi-Agent Path Finding
         <span class="badge">Decentralised VO</span>
       </h1>
       <div class="subtitle">
@@ -394,22 +394,14 @@
       </div>
 
       <div id="controls">
-        <!-- Connection -->
+        
+        <!-- Robots list -->
         <div class="panel">
           <div class="panel-header">
-            <h4>Connection</h4>
-            <span class="tag">Backend</span>
+            <h4>Robots</h4>
+            <span class="tag">Live State</span>
           </div>
-          <label>Server HTTP base
-            <input id="serverHttp" type="text" value="http://localhost:8000" />
-          </label>
-          <label>Server WS base
-            <input id="serverWs" type="text" value="ws://localhost:8000" />
-          </label>
-          <div class="env-actions">
-            <button id="applyServer">Reconnect &amp; Sync</button>
-          </div>
-          <div id="info"></div>
+          <div id="robotList">No robots yet</div>
         </div>
 
         <!-- Environment -->
@@ -443,7 +435,7 @@
             <select id="destSelect"></select>
           </label>
           <label>Robot ID (optional)
-            <input id="robotId" placeholder="e.g. R-10" />
+            <input id="robotId" class="robotId" placeholder="e.g. R-10" />
           </label>
           <label>Max speed (m/s)
             <input id="vmax" type="number" value="0.8" step="0.1" />
@@ -467,14 +459,25 @@
           </div>
         </div>
 
-        <!-- Robots list -->
+        <!-- Connection -->
         <div class="panel">
           <div class="panel-header">
-            <h4>Robots</h4>
-            <span class="tag">Live State</span>
+            <h4>Connection</h4>
+            <span class="tag">Backend</span>
           </div>
-          <div id="robotList">No robots yet</div>
+          <label>Server HTTP base
+            <input id="serverHttp" type="text" value="http://localhost:8000" />
+          </label>
+          <label>Server WS base
+            <input id="serverWs" type="text" value="ws://localhost:8000" />
+          </label>
+          <div class="env-actions">
+            <button id="applyServer">Reconnect &amp; Sync</button>
+          </div>
+          <div id="info"></div>
         </div>
+
+        
       </div>
     </div>
   </main>

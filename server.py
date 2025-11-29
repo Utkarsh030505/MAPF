@@ -163,9 +163,8 @@ def serialize_world():
     }
 
 
-# ---------------------------------------------------------------------------
 # Your decentralised control logic (from control.py + velocity_obstacle.py)
-# ---------------------------------------------------------------------------
+
 
 def compute_desired_velocity(current_pos: np.ndarray,
                              goal_pos: np.ndarray,
