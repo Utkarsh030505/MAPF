@@ -506,7 +506,7 @@ async def spawn_robot(payload: dict):
             "velocity": [0.0, 0.0],
             "dest_id": dest_id,
             "dest": [dest_obj["x"], dest_obj["y"]],
-            "active": True,
+            "active": False,
             "timestamp": time.time(),
             "vmax": payload.get("vmax", 0.8),
         }
@@ -575,6 +575,28 @@ async def clear_environment():
 
     print("[REST] environment cleared")
     return {"ok": True}
+
+@app.post("/robots/start")
+async def start_all_robots():
+    """
+    Activate all robots that are currently inactive.
+    """
+    count = 0
+    async with WORLD_LOCK:
+        for r in WORLD["robots"].values():
+            if not r.get("active", False):
+                r["active"] = True
+                count += 1
+
+    await manager.broadcast({
+        "msg_type": "robots_started",
+        "count": count,
+        "world": serialize_world()
+    })
+
+    print(f"[REST] started {count} robots")
+    return {"ok": True, "started": count}
+
 
 
 

@@ -456,6 +456,7 @@
           </label>
           <div class="env-actions">
             <button id="spawnBtn">Spawn Robot</button>
+              <button id="startRobots" class="secondary">▶ Start Robots</button>
           </div>
         </div>
 
@@ -586,7 +587,7 @@ function draw(){
     const r = world.robots[id];
     if(!r) continue;
     const [cx, cy] = toCanvas(r.position);
-    ctx.fillStyle = (r.active ? '#22c55e' : '#6b7280');
+    ctx.fillStyle = r.active ? '#facc15' : '#6b7280';
     ctx.beginPath(); ctx.arc(cx, cy, 10,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#e5e7eb'; ctx.font = '11px system-ui';
     ctx.fillText(id, cx+12, cy);
@@ -797,6 +798,33 @@ document.getElementById('clearObstacles').addEventListener('click', async ()=>{
   rememberSelections();
   await fetchEnv();
 });
+/* ------------ Start Button ------------ */
+async function startAllRobots() {
+  try {
+    setInfo("Starting all waiting robots…");
+
+    const r = await fetch(`${SERVER_HTTP}/robots/start`, {
+      method: "POST"
+    });
+
+    if (!r.ok) {
+      setInfo("❌ Failed to start robots.");
+      return;
+    }
+
+    const data = await r.json();
+    setInfo(`✅ Started ${data.started} robots.`);
+    await fetchEnv();
+
+  } catch (err) {
+    console.error(err);
+    setInfo("❌ Failed to start robots.");
+  }
+}
+
+document.getElementById("startRobots")
+  .addEventListener("click", startAllRobots);
+
 
 /* ------------ Canvas interactions ------------ */
 canvas.addEventListener('contextmenu', e => e.preventDefault());
