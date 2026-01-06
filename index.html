@@ -1,0 +1,989 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Multi-Agent Path Finding</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-elevated: #020617;
+      --card: #0b1220;
+      --card-soft: #020617;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.15);
+      --accent-strong: #0ea5e9;
+      --border-subtle: #1e293b;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --danger-soft: rgba(248,113,113,0.15);
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --shadow-soft: 0 18px 40px rgba(15,23,42,0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148,163,184,0.15);
+      backdrop-filter: blur(18px);
+      background: linear-gradient(to right, rgba(15,23,42,0.95), rgba(15,23,42,0.7));
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 span.badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(56,189,248,0.5);
+      color: var(--accent);
+      background: rgba(15,23,42,0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    header .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    header .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header .pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.4);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    header .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.25);
+    }
+
+    main {
+      flex: 1;
+      padding: 18px 18px 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #container {
+      display: flex;
+      gap: 18px;
+      max-width: 1180px;
+      width: 100%;
+    }
+
+    #left {
+      flex: 0 0 640px;
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.25), transparent 55%);
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow: var(--shadow-soft);
+    }
+
+    #left-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #left-header h3 {
+      margin: 0;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    #left-header .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+    canvas {
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: radial-gradient(circle at top, #020617, #020617 40%, #020617 100%);
+      display: block;
+    }
+
+    #controls {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel {
+      background: radial-gradient(circle at top, rgba(15,23,42,0.8), rgba(15,23,42,0.95));
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      padding: 10px 11px;
+      box-shadow: 0 16px 40px rgba(15,23,42,0.75);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .panel-header h4 {
+      margin: 0;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    .panel-header .tag {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.35);
+      color: var(--text-muted);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-top: 6px;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 6px 8px;
+      margin-top: 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,0.45);
+      background: rgba(15,23,42,0.9);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.8);
+      background: rgba(15,23,42,1);
+    }
+
+    button {
+      padding: 7px 11px;
+      margin-top: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.15), rgba(15,23,42,1));
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.18s, transform 0.06s, box-shadow 0.18s, border-color 0.18s;
+    }
+
+    button:hover {
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.25), rgba(15,23,42,1));
+      border-color: var(--accent);
+      box-shadow: 0 8px 22px rgba(15,23,42,0.8);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 14px rgba(15,23,42,0.9);
+    }
+
+    button.secondary {
+      background: rgba(15,23,42,0.85);
+      border-color: rgba(148,163,184,0.5);
+    }
+
+    button.secondary:hover {
+      background: rgba(15,23,42,1);
+    }
+
+    button.danger {
+      border-color: rgba(248,113,113,0.8);
+      background: radial-gradient(circle at top left, var(--danger-soft), rgba(15,23,42,1));
+      color: #fecaca;
+    }
+
+    button.danger:hover {
+      border-color: var(--danger);
+      background: radial-gradient(circle at top left, rgba(248,113,113,0.2), rgba(15,23,42,1));
+    }
+
+    #info {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--danger);
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--danger-soft);
+      border: 1px solid rgba(248,113,113,0.4);
+      display: none;
+    }
+
+    #info.show {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #info::before {
+      content: "!";
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(248,113,113,0.7);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .env-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .env-text {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    #IList {
+      max-height: 170px;
+      overflow-y: auto;
+      margin-top: 4px;
+      padding-right: 2px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    #robotList::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #robotList::-webkit-scrollbar-track {
+      background: rgba(15,23,42,0.7);
+      border-radius: 999px;
+    }
+
+    #robotList::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,0.6);
+      border-radius: 999px;
+    }
+
+    #robotList div {
+      padding: 4px 6px;
+      border-radius: 7px;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.25);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #robotList div span.id {
+      font-weight: 600;
+      color: var(--accent-strong);
+    }
+
+    #robotList div span.meta {
+      flex: 1;
+      text-align: right;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-block">
+      <h1>
+        Multi-Agent Path Finding
+        <span class="badge">Decentralised VO</span>
+      </h1>
+      <div class="subtitle">
+        Live simulation of multiple robots avoiding each other and static obstacles in a 2D workspace.
+      </div>
+    </div>
+    <div class="status">
+      <div class="pill">
+        <span class="pill-dot"></span>
+        Server: <span id="serverStatusText">Connected</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="container">
+      <div id="left">
+        <div id="left-header">
+          <h3>Simulation Space</h3>
+          <div class="hint">View: 10m × 10m | Grid = 1m</div>
+        </div>
+        <canvas id="scene" width="640" height="640"></canvas>
+      </div>
+
+      <div id="controls">
+        
+        
+        <!-- Environment -->
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Environment</h4>
+            <span class="tag">Workspace</span>
+          </div>
+          <div class="env-actions">
+            <button id="refreshEnv" class="secondary">Refresh</button>
+            <button id="resetEnv" class="danger">Reset to Initial</button>
+            <button id="clearEnv" class="danger">Clear Environment</button>
+          </div>
+          <div class="env-text">
+            Canvas actions:
+            <br>• <b>Left-click</b> &nbsp;→ add <b>Source</b>
+            <br>• <b>Right-click</b> → add <b>Destination</b>
+            <br>• <b>Shift + click</b> → add <b>Square obstacle</b>
+          </div>
+        </div>
+        
+        <!-- Robots list -->
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Robots</h4>
+            <span class="tag">Live State</span>
+          </div>
+          <div id="robotList">No robots yet</div>
+        </div>
+        <div class="panel">
+  <div class="panel-header">
+    <h4>Test Cases</h4>
+    <span class="tag">Validation</span>
+  </div>
+
+  <div class="env-actions">
+    <button id="runTest10" class="secondary">
+      ▶ Run 10-Robot Collision Test
+    </button>
+  </div>
+  </div>
+
+        <!-- Spawn Robot -->
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Spawn Robot</h4>
+            <span class="tag">Robots</span>
+          </div>
+          <label>Source
+            <select id="sourceSelect"></select>
+          </label>
+          <label>Destination
+            <select id="destSelect"></select>
+          </label>
+          <label>Robot ID (optional)
+            <input id="robotId" class="robotId" placeholder="e.g. R-10" />
+          </label>
+          <label>Max speed (m/s)
+            <input id="vmax" type="number" value="0.8" step="0.1" />
+          </label>
+          <div class="env-actions">
+            <button id="spawnBtn">Spawn Robot</button>
+          </div>
+        </div>
+
+        <!-- Obstacles -->
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Obstacles</h4>
+            <span class="tag">Static</span>
+          </div>
+          <label>Half side length of square (m)
+            <input id="obsRadius" type="number" value="0.4" step="0.05"/>
+          </label>
+          <div class="env-actions">
+            <button id="clearObstacles" class="secondary">Clear All Obstacles</button>
+          </div>
+        </div>
+
+        <!-- Connection -->
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Connection</h4>
+            <span class="tag">Backend</span>
+          </div>
+          <label>Server HTTP base
+            <input id="serverHttp" type="text" value="http://localhost:8000" />
+          </label>
+          <label>Server WS base
+            <input id="serverWs" type="text" value="ws://localhost:8000" />
+          </label>
+          <div class="env-actions">
+            <button id="applyServer">Reconnect &amp; Sync</button>
+          </div>
+          <div id="info"></div>
+        </div>
+
+        
+      </div>
+    </div>
+  </main>
+
+<script>
+/* ------------ Config ------------ */
+let SERVER_HTTP = document.getElementById('serverHttp').value || 'http://localhost:8000';
+let SERVER_WS   = document.getElementById('serverWs').value   || 'ws://localhost:8000';
+const infoDiv   = document.getElementById('info');
+const serverStatusText = document.getElementById('serverStatusText');
+
+/* ------------ World & canvas ------------ */
+const canvas = document.getElementById('scene');
+const ctx    = canvas.getContext('2d');
+const W      = 10.0;
+const scale  = canvas.width / W;
+
+let world = { bounds:[0,0,10,10], obstacles:[], sources:[], destinations:[], robots:{} };
+let ws    = null;
+
+// Remember dropdown choices across reloads
+let rememberedSourceValue = null;
+let rememberedDestValue   = null;
+
+function toCanvas(p){ return [p[0]*scale, canvas.height - p[1]*scale]; }
+function fromCanvas(cx, cy){ return [cx/scale, (canvas.height - cy)/scale]; }
+
+
+
+/* ------------ Fetch environment from server ------------ */
+async function fetchEnv(){
+  try {
+    const r = await fetch(`${SERVER_HTTP}/env`);
+    if(!r.ok) throw new Error('env fetch failed');
+    const env = await r.json();
+    rememberSelections();
+    world = env;
+    populateSelects(true);
+    draw();
+    setInfo('');
+  } catch(e){
+    console.error('fetchEnv error', e);
+    setInfo('Could not fetch environment from server.');
+  }
+}
+
+/* ------------ Drawing ------------ */
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // grid
+  ctx.strokeStyle = '#1f2937';
+  ctx.lineWidth = 0.8;
+  for(let i=0;i<=W;i++){
+    ctx.beginPath(); ctx.moveTo(i*scale,0); ctx.lineTo(i*scale,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*scale); ctx.lineTo(canvas.width,i*scale); ctx.stroke();
+  }
+
+  // obstacles (SQUARES)
+  for(const o of world.obstacles || []){
+    const [cx, cy] = toCanvas([o.x, o.y]);
+    const halfSide = o.r * scale;
+    const x = cx - halfSide;
+    const y = cy - halfSide;
+    ctx.fillStyle = 'rgba(56,189,248,0.25)';
+    ctx.fillRect(x, y, 2*halfSide, 2*halfSide);
+    ctx.strokeStyle = 'rgba(56,189,248,0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(x, y, 2*halfSide, 2*halfSide);
+  }
+
+  // sources
+  for(const s of world.sources || []){
+    const [cx, cy] = toCanvas([s.x, s.y]);
+    ctx.fillStyle='#22c55e';
+    ctx.beginPath(); ctx.arc(cx, cy, 8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e5e7eb'; ctx.font = '11px system-ui';
+    ctx.fillText(s.id, cx+10, cy+4);
+  }
+
+  // destinations
+  for(const d of world.destinations || []){
+    const [cx, cy] = toCanvas([d.x, d.y]);
+    ctx.fillStyle = d.taken ? '#64748b' : '#0ea5e9';
+    ctx.beginPath(); ctx.arc(cx, cy, 8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e5e7eb'; ctx.font = '11px system-ui';
+    ctx.fillText(d.id + (d.taken ? ' (taken)' : ''), cx+10, cy+4);
+  }
+
+  // robots
+  for(const id in world.robots || {}){
+    const r = world.robots[id];
+    if(!r) continue;
+    const [cx, cy] = toCanvas(r.position);
+    ctx.fillStyle = (r.active ? '#22c55e' : '#6b7280');
+    ctx.beginPath(); ctx.arc(cx, cy, 10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e5e7eb'; ctx.font = '11px system-ui';
+    ctx.fillText(id, cx+12, cy);
+
+    // velocity arrow
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + (r.velocity[0]||0)*scale*0.5, cy - (r.velocity[1]||0)*scale*0.5);
+    ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1;
+    ctx.stroke();
+  }
+
+  updateRobotList();
+}
+
+/* ------------ Robot list panel ------------ */
+function updateRobotList(){
+  const rdiv = document.getElementById('robotList');
+  rdiv.innerHTML = '';
+  const keys = Object.keys(world.robots || {});
+  if(keys.length === 0){
+    rdiv.innerText = 'No robots yet';
+    return;
+  }
+  for(const k of keys){
+    const r = world.robots[k];
+    const row = document.createElement('div');
+
+    const idSpan = document.createElement('span');
+    idSpan.className = 'id';
+    idSpan.textContent = k;
+
+    const metaSpan = document.createElement('span');
+    metaSpan.className = 'meta';
+    const pos  = (r.position||[]).map(x=>x.toFixed(2)).join(',');
+    const dest = (r.dest||[]).map(x=>x.toFixed(2)).join(',');
+    metaSpan.textContent = `pos: ${pos} | dest: ${dest} | active: ${r.active}`;
+
+    row.appendChild(idSpan);
+    row.appendChild(metaSpan);
+    rdiv.appendChild(row);
+  }
+}
+
+/* ------------ Dropdown helpers ------------ */
+function rememberSelections(){
+  const srcSel = document.getElementById('sourceSelect');
+  const dstSel = document.getElementById('destSelect');
+  if(srcSel && srcSel.value) rememberedSourceValue = srcSel.value;
+  if(dstSel && dstSel.value) rememberedDestValue   = dstSel.value;
+}
+
+function populateSelects(tryRestore=false){
+  const srcSel = document.getElementById('sourceSelect');
+  const dstSel = document.getElementById('destSelect');
+  const prevSrc = tryRestore ? rememberedSourceValue : null;
+  const prevDst = tryRestore ? rememberedDestValue   : null;
+
+  srcSel.innerHTML = '';
+  dstSel.innerHTML = '';
+
+  // sources
+  (world.sources || []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify({id:s.id, x:s.x, y:s.y});
+    opt.text  = s.id + ` (${s.x.toFixed(1)},${s.y.toFixed(1)})`;
+    srcSel.appendChild(opt);
+  });
+
+  // destinations
+  (world.destinations || []).forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify({id:d.id, x:d.x, y:d.y, taken:!!d.taken});
+    opt.text  = d.id + ` (${d.x.toFixed(1)},${d.y.toFixed(1)})` + (d.taken ? ' (taken)' : '');
+    if(d.taken) opt.classList.add('taken');
+    dstSel.appendChild(opt);
+  });
+
+  if(prevSrc && Array.from(srcSel.options).some(o => o.value === prevSrc)){
+    srcSel.value = prevSrc;
+  } else if(srcSel.options.length > 0){
+    srcSel.selectedIndex = 0;
+  }
+
+  if(prevDst && Array.from(dstSel.options).some(o => o.value === prevDst)){
+    dstSel.value = prevDst;
+  } else if(dstSel.options.length > 0){
+    dstSel.selectedIndex = 0;
+  }
+
+  const anyFree = (world.destinations || []).some(d => !d.taken);
+  setInfo(anyFree ? '' : 'All destinations are taken. Add more or wait for a robot to finish.');
+}
+
+/* ------------ UI info helper ------------ */
+function setInfo(msg){
+  if(!msg){
+    infoDiv.classList.remove('show');
+    infoDiv.textContent = '';
+  } else {
+    infoDiv.classList.add('show');
+    infoDiv.textContent = msg;
+  }
+}
+
+/* ------------ Buttons / UI actions ------------ */
+document.getElementById('applyServer').addEventListener('click', async () => {
+  rememberSelections();
+  SERVER_HTTP = document.getElementById('serverHttp').value.trim() || SERVER_HTTP;
+  SERVER_WS   = document.getElementById('serverWs').value.trim()   || SERVER_WS;
+  if(ws){ try{ ws.close(); } catch(e){} }
+  connectWebSocket();
+  await fetchEnv();
+});
+
+document.getElementById('refreshEnv').addEventListener('click', async ()=>{
+  rememberSelections();
+  await fetchEnv();
+});
+
+document.getElementById('resetEnv').addEventListener('click', async ()=>{
+  try {
+    const r = await fetch(`${SERVER_HTTP}/env/reset`, { method:'POST' });
+    if(!r.ok){
+      setInfo('Reset failed.');
+      return;
+    }
+    rememberedSourceValue = null;
+    rememberedDestValue   = null;
+    await fetchEnv();
+  } catch(e){
+    console.error('reset error', e);
+    setInfo('Reset failed: could not contact server.');
+  }
+});
+
+async function clearEntireEnvironment() {
+  try {
+    setInfo("Clearing entire environment…");
+
+    const r = await fetch(`${SERVER_HTTP}/env/clear`, {
+      method: "POST"
+    });
+
+    if (!r.ok) {
+      setInfo("❌ Failed to clear environment.");
+      return;
+    }
+
+    rememberedSourceValue = null;
+    rememberedDestValue = null;
+
+    await fetchEnv();
+    setInfo("✅ Environment cleared.");
+
+  } catch (err) {
+    console.error(err);
+    setInfo("❌ Failed to clear environment.");
+  }
+}
+document.getElementById("clearEnv")
+  .addEventListener("click", clearEntireEnvironment);
+
+
+document.getElementById('spawnBtn').addEventListener('click', async ()=>{
+  const srcSel = document.getElementById('sourceSelect');
+  const dstSel = document.getElementById('destSelect');
+  if(!srcSel.value || !dstSel.value){
+    alert('Please select a source and destination.');
+    return;
+  }
+  const srcObj = JSON.parse(srcSel.value);
+  const dstObj = JSON.parse(dstSel.value);
+
+  const src_id = srcObj.id;
+  const dest_id = dstObj.id;
+  const rid   = document.getElementById('robotId').value || undefined;
+  const vmax  = parseFloat(document.getElementById('vmax').value) || 0.8;
+
+  const payload = { robot_id: rid, source_id: src_id, dest_id: dest_id, vmax: vmax };
+  try {
+    const r = await fetch(`${SERVER_HTTP}/spawn`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if(!r.ok){
+      console.warn('spawn failed', data);
+      alert('Spawn failed: ' + (data.error || JSON.stringify(data.errors || {})));
+      rememberSelections();
+      await fetchEnv();
+      return;
+    }
+    rememberSelections();
+    await fetchEnv();
+  } catch(e){
+    console.error('spawn error', e);
+    setInfo('Spawn failed: could not contact server.');
+  }
+});
+
+document.getElementById('clearObstacles').addEventListener('click', async ()=>{
+  const obs = [...(world.obstacles || [])];
+  for(const o of obs){
+    await fetch(`${SERVER_HTTP}/env/obstacle/${encodeURIComponent(o.id)}`, { method:'DELETE' });
+  }
+  rememberSelections();
+  await fetchEnv();
+});
+
+/* ------------ Canvas interactions ------------ */
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', async (ev)=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+  const p = fromCanvas(x, y);
+
+  if(ev.shiftKey){
+    const radius = parseFloat(document.getElementById('obsRadius').value) || 0.4;
+    const id = 'obs-' + Math.floor(Math.random()*100000);
+    await fetch(`${SERVER_HTTP}/env/obstacle`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id:id, x:p[0], y:p[1], r: radius})
+    });
+    rememberSelections();
+    await fetchEnv();
+    return;
+  }
+
+  if(ev.button === 0){
+    const id = 'S-' + Math.floor(Math.random()*100000);
+    await fetch(`${SERVER_HTTP}/env/source`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id:id, x:p[0], y:p[1]})
+    });
+    rememberSelections();
+    await fetchEnv();
+  } else if(ev.button === 2){
+    const id = 'D-' + Math.floor(Math.random()*100000);
+    await fetch(`${SERVER_HTTP}/env/destination`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id:id, x:p[0], y:p[1]})
+    });
+    rememberSelections();
+    await fetchEnv();
+  }
+});
+
+/* ------------ WebSocket handling ------------ */
+function connectWebSocket(){
+  try {
+    const base = SERVER_WS.trim();
+    const wsBase = (base.startsWith('ws://') || base.startsWith('wss://'))
+      ? base
+      : (location.protocol === 'https:' ? 'wss://' : 'ws://') + base;
+    const url = `${wsBase.replace(/\/$/,'')}/ws/browser-ui`;
+    console.log('Connecting WS to', url);
+    ws = new WebSocket(url);
+  } catch(e){
+    console.error('ws connect error', e);
+    setInfo('WebSocket connect failed');
+    serverStatusText.textContent = 'Disconnected';
+    return;
+  }
+
+  ws.onopen = () => {
+    console.log('WS connected');
+    serverStatusText.textContent = 'Connected';
+  };
+  ws.onclose = () => {
+    console.log('WS closed');
+    serverStatusText.textContent = 'Disconnected';
+  };
+  ws.onerror = (e) => {
+    console.log('WS error', e);
+    serverStatusText.textContent = 'Error';
+  };
+
+  ws.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+
+      // 1) Frequent world_state: only update robot positions
+      if(msg.msg_type === 'world_state' || msg.msg_type === 'world_snapshot'){
+        if(msg.world && msg.world.robots){
+          world.robots = msg.world.robots;
+        }
+        draw();
+      }
+      // 2) Environment changed: re-fetch env and rebuild dropdowns
+      else if(msg.msg_type === 'env_changed' ||
+              msg.msg_type === 'spawned_via_rest' ||
+              msg.msg_type === 'robot_spawned'){
+        fetchEnv();
+      }
+      // 3) Single robot update
+      else if(msg.msg_type === 'robot_update'){
+        const r = msg.robot;
+        world.robots[r.id] = r;
+        draw();
+      }
+      else if(msg.msg_type === 'robot_deactivated'){
+        const id = msg.robot_id;
+        if(world.robots[id]) world.robots[id].active = false;
+        draw();
+      }
+      else if(msg.msg_type === 'spawn_rejected'){
+        alert('Server rejected spawn: ' + (msg.reason || 'unknown'));
+      }
+    } catch(e){
+      console.log('ws parse error', e);
+    }
+  };
+}
+/* ------------  Test Case ------------ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function run10RobotTestCase() {
+  try {
+    setInfo("Running 10-robot collision test…");
+
+    // 1️⃣ Reset environment
+    await fetch(`${SERVER_HTTP}/env/reset`, { method: "POST" });
+    await sleep(500);
+
+    // 2️⃣ Create 10 sources (left side)
+    const ys = [];
+    for (let i = 0; i < 10; i++) {
+      ys.push(0.5 + i * (9.0 / 9.0));
+    }
+
+    for (let i = 0; i < 10; i++) {
+      await fetch(`${SERVER_HTTP}/env/source`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: `s${i + 1}`,
+          x: 0.5,
+          y: ys[i]
+        })
+      });
+    }
+
+    // 3️⃣ Create 10 destinations (right side)
+    for (let i = 0; i < 10; i++) {
+      await fetch(`${SERVER_HTTP}/env/destination`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: `d${i + 1}`,
+          x: 9.5,
+          y: ys[i]
+        })
+      });
+    }
+
+    await sleep(500);
+
+    // 4️⃣ Spawn 10 robots (1-to-1)
+    for (let i = 0; i < 10; i++) {
+      await fetch(`${SERVER_HTTP}/spawn`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          robot_id: `R${i + 1}`,
+          source_id: `s${i + 1}`,
+          dest_id: `d${i + 1}`,
+          vmax: 1.0
+        })
+      });
+
+      // slight delay avoids burst overload
+      await sleep(150);
+    }
+
+    setInfo("✅ Test running: observe robots avoiding collisions.");
+    await fetchEnv();
+
+  } catch (err) {
+    console.error(err);
+    setInfo("❌ Failed to run test case.");
+  }
+}
+document.getElementById("runTest10")
+  .addEventListener("click", run10RobotTestCase);
+
+
+
+/* ------------ Initial connect & load ------------ */
+connectWebSocket();
+fetchEnv();
+</script>
+</body>
+</html>
