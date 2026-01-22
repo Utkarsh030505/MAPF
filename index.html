@@ -500,10 +500,17 @@
 <script>
 /* ------------ Config ------------ */
 let defaultHttp = window.location.origin;
-let defaultWs   = defaultHttp.replace("http", "ws").replace("https", "wss");
+let defaultWs   = defaultHttp.replace("https://", "wss://").replace("http://", "ws://");
 
-let SERVER_HTTP = document.getElementById('serverHttp').value || defaultHttp;
-let SERVER_WS   = document.getElementById('serverWs').value   || defaultWs;
+let httpInput = document.getElementById('serverHttp').value.trim();
+let wsInput   = document.getElementById('serverWs').value.trim();
+
+let SERVER_HTTP = httpInput !== "" ? httpInput : defaultHttp;
+let SERVER_WS   = wsInput   !== "" ? wsInput   : defaultWs;
+
+console.log("SERVER_HTTP =", SERVER_HTTP);
+console.log("SERVER_WS   =", SERVER_WS);
+
 
 const infoDiv   = document.getElementById('info');
 const serverStatusText = document.getElementById('serverStatusText');
