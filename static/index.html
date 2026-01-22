@@ -456,7 +456,7 @@
           </label>
           <div class="env-actions">
             <button id="spawnBtn">Spawn Robot</button>
-              <button id="startRobots" class="secondary">▶ Start Robots</button>
+              <button id="startRobots" class="danger">▶ Start Robots</button>
           </div>
         </div>
 
@@ -499,8 +499,12 @@
 
 <script>
 /* ------------ Config ------------ */
-let SERVER_HTTP = document.getElementById('serverHttp').value || 'http://localhost:8000';
-let SERVER_WS   = document.getElementById('serverWs').value   || 'ws://localhost:8000';
+let defaultHttp = window.location.origin;
+let defaultWs   = defaultHttp.replace("http", "ws").replace("https", "wss");
+
+let SERVER_HTTP = document.getElementById('serverHttp').value || defaultHttp;
+let SERVER_WS   = document.getElementById('serverWs').value   || defaultWs;
+
 const infoDiv   = document.getElementById('info');
 const serverStatusText = document.getElementById('serverStatusText');
 

@@ -31,6 +31,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
 app = FastAPI()
 
 # CORS for dev
@@ -95,7 +99,7 @@ from copy import deepcopy
 # VO / control constants ...
 ROBOT_RADIUS = 0.5
 VMAX_GLOBAL = 2.0
-CONTROL_DT = 0.1
+CONTROL_DT = 0.05
 
 def get_initial_world():
     """Return a fresh copy of the initial environment."""
@@ -216,7 +220,11 @@ def check_inside(v, Amat, bvec):
             v_out.append(v[:, i])
     # if everything violated, fallback to zero velocity search-space
     if len(v_out) == 0:
-        return np.zeros((2, 1))
+    # return a small random sidestep instead of zero
+        angle = np.random.uniform(0, 2*np.pi)
+        v_escape = np.array([[0.2*np.cos(angle)], [0.2*np.sin(angle)]])
+        return v_escape
+
     return np.array(v_out).T
 
 
@@ -334,6 +342,22 @@ async def compute_controls_once():
 
         dest = r.get("dest", r["position"])
         dest_state = np.array([dest[0], dest[1], 0.0, 0.0], dtype=float)
+
+        ARRIVAL_RADIUS = 0.25  # Robot considered arrived within 25 cm
+
+        dist_to_goal = np.linalg.norm(dest_state[:2] - robot_state[:2])
+
+        # if robot is "close enough", snap to dest and deactivate
+        if dist_to_goal < 0.20:      # <=== tune threshold (20-30 cm)
+            r["position"] = [dest_state[0], dest_state[1]]
+            r["velocity"] = [0.0, 0.0]
+            r["active"] = False
+            await manager.send_personal(rid, {
+                "msg_type": "deactivate",
+                "robot_id": rid,
+                "timestamp": time.time()
+            })
+            continue
 
         vmax = float(r.get("vmax", VMAX_GLOBAL))
 
@@ -711,3 +735,11 @@ async def health():
 
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+
+#for render deployment 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("index.html")
+

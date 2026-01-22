@@ -39,7 +39,7 @@ class Robot:
         self.dt = float(dt)
         self._stop = False
         self._ws = None  # websocket connection
-        self._arrive_threshold = 0.05
+        self._arrive_threshold = 0.12   
 
     def _compute_local_velocity(self) -> np.ndarray:
         delta = self.dest - self.pos
@@ -98,9 +98,9 @@ class Robot:
 
     async def _update_loop(self):
         while not self._stop:
-            # compute velocity if no server override
-            if np.linalg.norm(self.v) < 1e-6:
-                self.v = self._compute_local_velocity()
+            # # compute velocity if no server override
+            # if np.linalg.norm(self.v) < 1e-6:
+            #     self.v = self._compute_local_velocity()
 
             # integrate
             self.pos = self.pos + self.v * self.dt
