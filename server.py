@@ -736,9 +736,6 @@ async def health():
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
 
-#for render deployment 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 @app.get("/")
 def root():
     return FileResponse("index.html")
