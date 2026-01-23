@@ -7,3 +7,12 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     autoDeploy: true
+
+  - type: worker
+    name: mapf-robot-worker
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python robot_client.py --auto --server https://mapf.onrender.com --ws wss://mapf.onrender.com/ws
+    autoDeploy: true

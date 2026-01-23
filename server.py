@@ -343,12 +343,12 @@ async def compute_controls_once():
         dest = r.get("dest", r["position"])
         dest_state = np.array([dest[0], dest[1], 0.0, 0.0], dtype=float)
 
-        ARRIVAL_RADIUS = 0.25  # Robot considered arrived within 25 cm
+        ARRIVAL_RADIUS = 0.05  # Robot considered arrived within 25 cm
 
         dist_to_goal = np.linalg.norm(dest_state[:2] - robot_state[:2])
 
         # if robot is "close enough", snap to dest and deactivate
-        if dist_to_goal < 0.20:      # <=== tune threshold (20-30 cm)
+        if dist_to_goal < ARRIVAL_RADIUS:      # <=== tune threshold (5 cm)
             r["position"] = [dest_state[0], dest_state[1]]
             r["velocity"] = [0.0, 0.0]
             r["active"] = False
