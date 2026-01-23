@@ -30,6 +30,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+from robot_client import AutoManager
+
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -726,6 +728,17 @@ async def handle_ws_message(client_id: str, msg: Dict[str, Any]):
             WORLD["robots"][rid]["active"] = False
             WORLD["robots"][rid]["timestamp"] = time.time()
             await manager.broadcast({"msg_type": "robot_deactivated", "robot_id": rid})
+
+@app.on_event("startup")
+async def start_robot_simulation():
+    SERVER_HTTP = "https://mapf.onrender.com"   
+    SERVER_WS   = "wss://mapf.onrender.com/ws" 
+
+    manager = AutoManager(SERVER_HTTP, SERVER_WS, poll_interval=1.0)
+    asyncio.create_task(manager.run())
+
+    print("[SERVER] Robot simulation STARTED.")
+
 
 
 @app.get("/health")
