@@ -731,13 +731,14 @@ async def handle_ws_message(client_id: str, msg: Dict[str, Any]):
 
 @app.on_event("startup")
 async def start_robot_simulation():
-    SERVER_HTTP = "https://mapf.onrender.com"   
-    SERVER_WS   = "wss://mapf.onrender.com/ws" 
+    SERVER_HTTP = "https://mapf.onrender.com"
+    SERVER_WS   = "wss://mapf.onrender.com/ws"
 
-    manager = AutoManager(SERVER_HTTP, SERVER_WS, poll_interval=1.0)
-    asyncio.create_task(manager.run())
+    auto_manager = AutoManager(SERVER_HTTP, SERVER_WS, poll_interval=1.0)
+    asyncio.create_task(auto_manager.run())
 
     print("[SERVER] Robot simulation STARTED.")
+
 
 
 
