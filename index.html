@@ -44,7 +44,6 @@
       border-bottom: 1px solid rgba(148,163,184,0.15);
       backdrop-filter: blur(18px);
       background: linear-gradient(to right, rgba(15,23,42,0.95), rgba(15,23,42,0.7));
-      position: sticky;
       top: 0;
       z-index: 10;
     }
@@ -361,6 +360,19 @@
       font-size: 10px;
       color: var(--text-muted);
     }
+    .github-icon img {
+  width: 50px;
+  height: 50px;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.github-icon img:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+    
 
   </style>
 </head>
@@ -375,7 +387,11 @@
         Live simulation of multiple robots avoiding each other and static obstacles in a 2D workspace.
       </div>
     </div>
+    
     <div class="status">
+      <a href="https://github.com/Utkarsh030505/MAPF" target="_blank" class="github-icon">
+     <img src="github-6980894.svg" alt="GitHub">
+    </a>
       <div class="pill">
         <span class="pill-dot"></span>
         Server: <span id="serverStatusText">Connected</span>
@@ -414,27 +430,6 @@
             <br>• <b>Shift + click</b> → add <b>Square obstacle</b>
           </div>
         </div>
-        
-        <!-- Robots list -->
-        <div class="panel">
-          <div class="panel-header">
-            <h4>Robots</h4>
-            <span class="tag">Live State</span>
-          </div>
-          <div id="robotList">No robots yet</div>
-        </div>
-        <div class="panel">
-  <div class="panel-header">
-    <h4>Test Cases</h4>
-    <span class="tag">Validation</span>
-  </div>
-
-  <div class="env-actions">
-    <button id="runTest10" class="secondary">
-      ▶ Run 10-Robot Collision Test
-    </button>
-  </div>
-  </div>
 
         <!-- Spawn Robot -->
         <div class="panel">
@@ -459,11 +454,34 @@
               <button id="startRobots" class="danger">▶ Start Robots</button>
           </div>
         </div>
+        
+        <!-- Robots list -->
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Robots</h4>
+            <span class="tag">Live State</span>
+          </div>
+          <div id="robotList">No robots yet</div>
+        </div>
+<!-- 
+        <div class="panel">
+  <div class="panel-header">
+    <span class="tag">Validation</span>
+  </div>
+
+  <div class="env-actions">
+    <button id="runTest10" class="secondary">
+      ▶ Run 10-Robot Collision Test
+    </button>
+  </div>
+  </div> -->
+
+        
 
         <!-- Obstacles -->
         <div class="panel">
           <div class="panel-header">
-            <h4>Obstacles</h4>
+            <h4>Spawn Obstacles</h4>
             <span class="tag">Static</span>
           </div>
           <label>Half side length of square (m)
