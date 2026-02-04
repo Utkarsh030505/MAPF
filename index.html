@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <title>Multi-Agent Path Finding</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <style>
     :root {
       --bg: #0f172a;
@@ -360,18 +362,16 @@
       font-size: 10px;
       color: var(--text-muted);
     }
-    .github-icon img {
-  width: 50px;
-  height: 50px;
+   .github-icon i {
+  font-size: 26px;
+  color: white;   /* change based on background */
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.github-icon:hover i {
+  transform: scale(1.1);
   opacity: 0.85;
-  transition: opacity 0.2s ease, transform 0.2s ease;
 }
-
-.github-icon img:hover {
-  opacity: 1;
-  transform: scale(1.08);
-}
-
     
 
   </style>
@@ -390,7 +390,7 @@
     
     <div class="status">
       <a href="https://github.com/Utkarsh030505/MAPF" target="_blank" class="github-icon">
-     <img src="github.png" alt="GitHub">
+       <i class="fab fa-github"></i>
     </a>
       <div class="pill">
         <span class="pill-dot"></span>
@@ -1041,6 +1041,45 @@ document.getElementById("runTest10")
 /* ------------ Initial connect & load ------------ */
 connectWebSocket();
 fetchEnv();
+
 </script>
+
+<!-- AUTO-RECONNECT + KEEP-ALIVE -->
+<script>
+/* --------------------------------------------------------
+   AUTO-RECONNECT WHEN Render SERVER WAKES UP
+   -------------------------------------------------------- */
+async function tryReconnect() {
+  try {
+    const res = await fetch("/health", { cache: "no-store" });
+    if (res.ok) {
+      console.log("[auto-reconnect] Server awake → syncing…");
+
+      // refresh environment
+      await fetchEnv();
+
+      // ensure WebSocket is connected
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.log("[auto-reconnect] reconnecting WS…");
+        connectWebSocket();
+      }
+    }
+  } catch (err) {
+    console.log("[auto-reconnect] Server still asleep…");
+  }
+}
+
+// check every 5 seconds
+setInterval(tryReconnect, 5000);
+
+
+/* --------------------------------------------------------
+   PREVENT SERVER FROM SLEEPING (Render free-tier)
+   -------------------------------------------------------- */
+setInterval(() => {
+  fetch("/health").catch(() => {});
+}, 9 * 60 * 1000);  // ping every 9 minutes
+</script>
+
 </body>
 </html>

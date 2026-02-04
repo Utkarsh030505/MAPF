@@ -437,14 +437,35 @@ async def get_env():
 async def reset_environment():
     """
     Reset WORLD to its initial configuration:
-    - bounds, obstacles, sources, destinations, robots
+    - stop all robots (set active=False, velocity=0)
+    - delete all robots
+    - restore bounds, sources, destinations, obstacles to defaults
     """
     global WORLD
+
     async with WORLD_LOCK:
-        WORLD = get_initial_world()  # resets world back to original
-    await manager.broadcast({"msg_type": "env_changed", "world": serialize_world()})
-    print("[REST] environment reset to initial state")
+        # 1. Stop ALL robots immediately (for the browser UI + any rogue WS clients)
+        for rid, r in list(WORLD["robots"].items()):
+            # notify WS clients, if connected
+            await manager.send_personal(rid, {
+                "msg_type": "deactivate",
+                "robot_id": rid,
+                "timestamp": time.time()
+            })
+
+        # 2. Clear robots dictionary
+        WORLD = get_initial_world()   # restores original state (bounds, obs, src, dest, empty robots)
+
+    # 3. Notify browser UI
+    await manager.broadcast({
+        "msg_type": "env_changed",
+        "world": serialize_world()
+    })
+
+    print("[REST] environment RESET → all robots stopped + world restored")
+
     return {"ok": True}
+
 
 
 
