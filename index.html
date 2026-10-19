@@ -1044,42 +1044,5 @@ fetchEnv();
 
 </script>
 
-<!-- AUTO-RECONNECT + KEEP-ALIVE -->
-<script>
-/* --------------------------------------------------------
-   AUTO-RECONNECT WHEN Render SERVER WAKES UP
-   -------------------------------------------------------- */
-async function tryReconnect() {
-  try {
-    const res = await fetch("/health", { cache: "no-store" });
-    if (res.ok) {
-      console.log("[auto-reconnect] Server awake → syncing…");
-
-      // refresh environment
-      await fetchEnv();
-
-      // ensure WebSocket is connected
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.log("[auto-reconnect] reconnecting WS…");
-        connectWebSocket();
-      }
-    }
-  } catch (err) {
-    console.log("[auto-reconnect] Server still asleep…");
-  }
-}
-
-// check every 5 seconds
-setInterval(tryReconnect, 5000);
-
-
-/* --------------------------------------------------------
-   PREVENT SERVER FROM SLEEPING (Render free-tier)
-   -------------------------------------------------------- */
-setInterval(() => {
-  fetch("/health").catch(() => {});
-}, 9 * 60 * 1000);  // ping every 9 minutes
-</script>
-
 </body>
 </html>
