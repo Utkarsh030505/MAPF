@@ -541,6 +541,8 @@ const scale  = canvas.width / W;
 
 let world = { bounds:[0,0,10,10], obstacles:[], sources:[], destinations:[], robots:{} };
 let ws    = null;
+// Show the grid immediately, without waiting for the backend.
+draw();
 
 // Remember dropdown choices across reloads
 let rememberedSourceValue = null;
@@ -552,21 +554,46 @@ function fromCanvas(cx, cy){ return [cx/scale, (canvas.height - cy)/scale]; }
 
 
 /* ------------ Fetch environment from server ------------ */
-async function fetchEnv(){
-  try {
-    const r = await fetch(`${SERVER_HTTP}/env`);
-    if(!r.ok) throw new Error('env fetch failed');
-    const env = await r.json();
-    rememberSelections();
-    world = env;
-    populateSelects(true);
-    draw();
-    setInfo('');
-  } catch(e){
-    console.error('fetchEnv error', e);
-    setInfo('Could not fetch environment from server.');
+
+async function fetchEnv(maxAttempts = 6) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(`${SERVER_HTTP}/env`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const env = await response.json();
+
+      rememberSelections();
+      world = env;
+      populateSelects(true);
+      draw();
+      setInfo('');
+
+      console.log('Workspace synchronized');
+      return true;
+    } catch (error) {
+      console.warn(
+        `Environment load ${attempt}/${maxAttempts} failed`,
+        error.message
+      );
+
+      if (attempt < maxAttempts) {
+        setInfo('Connecting to backend…');
+
+        await new Promise(resolve =>
+          setTimeout(resolve, Math.min(2000 * attempt, 10000))
+        );
+      }
+    }
   }
+
+  setInfo('Could not load workspace. Please retry.');
+  return false;
 }
+
 
 /* ------------ Drawing ------------ */
 function draw(){
@@ -914,10 +941,15 @@ function connectWebSocket(){
     return;
   }
 
-  ws.onopen = () => {
-    console.log('WS connected');
-    serverStatusText.textContent = 'Connected';
-  };
+  
+ws.onopen = async () => {
+  console.log('WS connected');
+  serverStatusText.textContent = 'Connected';
+
+  // Load the environment after the backend connection succeeds.
+  await fetchEnv();
+};
+
   ws.onclose = () => {
     console.log('WS closed');
     serverStatusText.textContent = 'Disconnected';
@@ -927,41 +959,54 @@ function connectWebSocket(){
     serverStatusText.textContent = 'Error';
   };
 
-  ws.onmessage = (ev) => {
-    try {
-      const msg = JSON.parse(ev.data);
+  
+ws.onmessage = (ev) => {
+  try {
+    const msg = JSON.parse(ev.data);
 
-      // 1) Frequent world_state: only update robot positions
-      if(msg.msg_type === 'world_state' || msg.msg_type === 'world_snapshot'){
-        if(msg.world && msg.world.robots){
-          world.robots = msg.world.robots;
-        }
+    if (msg.msg_type === 'world_snapshot') {
+      if (msg.world) {
+        rememberSelections();
+        world = msg.world;
+        populateSelects(true);
+        draw();
+        setInfo('');
+      }
+    }
+    else if (msg.msg_type === 'world_state') {
+      if (msg.world && msg.world.robots) {
+        world.robots = msg.world.robots;
         draw();
       }
-      // 2) Environment changed: re-fetch env and rebuild dropdowns
-      else if(msg.msg_type === 'env_changed' ||
-              msg.msg_type === 'spawned_via_rest' ||
-              msg.msg_type === 'robot_spawned'){
-        fetchEnv();
-      }
-      // 3) Single robot update
-      else if(msg.msg_type === 'robot_update'){
-        const r = msg.robot;
+    }
+    else if (msg.msg_type === 'env_changed' ||
+             msg.msg_type === 'spawned_via_rest' ||
+             msg.msg_type === 'robot_spawned') {
+      fetchEnv();
+    }
+    else if (msg.msg_type === 'robot_update') {
+      const r = msg.robot;
+      if (r) {
         world.robots[r.id] = r;
         draw();
       }
-      else if(msg.msg_type === 'robot_deactivated'){
-        const id = msg.robot_id;
-        if(world.robots[id]) world.robots[id].active = false;
-        draw();
-      }
-      else if(msg.msg_type === 'spawn_rejected'){
-        alert('Server rejected spawn: ' + (msg.reason || 'unknown'));
-      }
-    } catch(e){
-      console.log('ws parse error', e);
     }
-  };
+    else if (msg.msg_type === 'robot_deactivated') {
+      const id = msg.robot_id;
+      if (world.robots[id]) {
+        world.robots[id].active = false;
+      }
+      draw();
+    }
+    else if (msg.msg_type === 'spawn_rejected') {
+      alert('Server rejected spawn: ' +
+            (msg.reason || 'unknown'));
+    }
+  } catch (error) {
+    console.error('WebSocket message error', error);
+  }
+};
+
 }
 /* ------------  Test Case ------------ */
 function sleep(ms) {
@@ -1033,14 +1078,23 @@ async function run10RobotTestCase() {
     setInfo("❌ Failed to run test case.");
   }
 }
-document.getElementById("runTest10")
-  .addEventListener("click", run10RobotTestCase);
+//tests disbaled for now
+// document.getElementById("runTest10")
+//   .addEventListener("click", run10RobotTestCase);
 
 
 
 /* ------------ Initial connect & load ------------ */
-connectWebSocket();
+
+/* ------------ Initial connect & load ------------ */
+draw();
+
+// Load the environment independently of the WebSocket.
 fetchEnv();
+
+// Establish the live connection.
+connectWebSocket();
+
 
 </script>
 
